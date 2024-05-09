@@ -1,35 +1,31 @@
-import pandas as pd
-import numpy as np
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
 import joblib
-from flask import Flask, render_template, request
+import pandas as pd
 
-app = Flask(__name__)
-data = pd.read_csv('diabetes.csv')
+app = FastAPI()
+
+# Load the model using joblib
 model = joblib.load("predict_diabetes.pkl")
 
+class ScoringItem(BaseModel):
+    Pregnancies: float
+    Glucose: float
+    BloodPressure: float
+    SkinThickness: float
+    Insulin: float
+    BMI: float
+    DiabetesPedigreeFunction: float
+    Age: float
 
+@app.post('/')
+async def scoring_endpoint(item: ScoringItem):
+    df = pd.DataFrame([item.dict().values()], columns=item.dict().keys())
+    yhat = model.predict(df)
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    Pregnancies = request.form.get('Pregnancies')
-    Glucose = request.form.get('Glucose')
-    BloodPressure = request.form.get('BloodPressure')
-    SkinThickness = request.form.get('SkinThickness')
-    Insulin = request.form.get('Insulin')
-    BMI = request.form.get('BMI')
-    DiabetesPedigreeFunction = request.form.get('DiabetesPedigreeFunction')
-    Age = request.form.get('Age')
+    return {"prediction": int(yhat)}
 
-    input_data = pd.DataFrame([[Pregnancies, Glucose, BloodPressure, SkinThickness, Insulin, BMI, DiabetesPedigreeFunction, Age]], columns=[
-                              'Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age'])
-
-    prediction = model.predict_diabetes(input_data)
-    print(prediction)
-    
-    if prediction == 0:
-      return "The person is not diabetic."
-    else:
-      return "The person is diabetic."
-
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+if __name__ == '__main__':
+    uvicorn.run(app, host='127.0.0.1', port=8000)
+ 
