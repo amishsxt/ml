@@ -24,7 +24,7 @@ async def scoring_endpoint(item: ScoringItem):
     df = pd.DataFrame([item.dict().values()], columns=item.dict().keys())
     yhat = model.predict(df)
 
-    return {"prediction": int(yhat)}
+    return {"prediction": int(yhat[0])}
 
 if __name__ == '__main__':
     uvicorn.run(app, host='127.0.0.1', port=8000)
